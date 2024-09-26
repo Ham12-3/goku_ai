@@ -38,9 +38,6 @@ export default async function Home() {
               </Link>
             )}
           </div>
-          <div className="w-full mt-4">
-            <Image src="" alt="" />
-          </div>
         </div>
       </div>
     </div>
