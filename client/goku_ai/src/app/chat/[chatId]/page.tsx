@@ -4,8 +4,10 @@ import { auth } from "@clerk/nextjs";
 import { redirect } from "next/navigation";
 import React, { isValidElement } from "react";
 import { eq } from "drizzle-orm";
-import ChatSideBar from "@/components/ChatsideBar";
+
 import PDFViewer from "@/components/PDFViewer";
+import ChatComponent from "@/components/ChatComponent";
+import ChatSideBar from "@/components/ChatSideBar";
 
 type Props = {
   params: {
@@ -42,7 +44,7 @@ const ChatPage = async ({ params: { chatId } }: Props) => {
         </div>
         <div className="flex-[3] border-l-4 border-l-slate-200">
           {/* chat component  */}
-          {/* <ChatComponent />  */}
+          <ChatComponent chatId={parseInt(chatId)} />
         </div>
       </div>
     </div>
