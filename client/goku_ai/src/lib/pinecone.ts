@@ -1,11 +1,26 @@
 import { Pinecone } from "@pinecone-database/pinecone";
 import { downloadFromS3 } from "./s3-server";
 import { PDFLoader } from "langchain/document_loaders/fs/pdf";
+import {
+  Document,
+  RecursiveCharacterTextSplitter,
+} from "@pinecone-database/doc-splitter";
 
-const pinecone = new Pinecone({
-  apiKey: process.env.PINECONE_API_KEY!,
-});
-const index = pinecone.index("quickstart");
+export const getPineconeClient = () => {
+  return new Pinecone({
+    environment: process.env.PINECONE_ENVIRONMENT!,
+    apiKey: process.env.PINECONE_API_KEY!,
+  });
+};
+
+type PDFPage = {
+  pageContent: string;
+  metadata: {
+    loc: {
+      pageNumber: number;
+    };
+  };
+};
 
 export async function loadS3IntoPinecone(fileKey: string) {
   // obtain the pdf
@@ -18,6 +33,30 @@ export async function loadS3IntoPinecone(fileKey: string) {
   }
 
   const loader = new PDFLoader(file_name);
-  const pages = loader.load();
-  return pages;
+  const pages = (await loader.load()) as PDFPage[];
+
+  // 2, split and segment the documnet into pages
+  const documents = await Promise.all(pages.map(prepareDocument));
+}
+
+export const truncateStringByBytes = (str: string, bytes: number) => {
+  const enc = new TextEncoder();
+  return new TextDecoder("utf-8").decode(enc.encode(str).slice(0, bytes));
+};
+
+async function prepareDocument(page: PDFPage) {
+  let { pageContent, metadata } = page;
+  pageContent = pageContent.replace(/\n/g, "");
+  // split the docs
+  const splitter = new RecursiveCharacterTextSplitter();
+  const docs = await splitter.splitDocuments([
+    new Document({
+      pageContent,
+      metadata: {
+        pageNumber: metadata.loc.pageNumber,
+        text: truncateStringByBytes(pageContent, 36000),
+      },
+    }),
+  ]);
+  return docs;
 }
