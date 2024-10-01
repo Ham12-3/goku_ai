@@ -1,5 +1,3 @@
-// /api/stripe
-
 import { db } from "@/lib/db";
 import { userSubscriptions } from "@/lib/db/schema";
 import { stripe } from "@/lib/stripe";
@@ -11,19 +9,23 @@ const return_url = process.env.NEXT_BASE_URL + "/";
 
 export async function GET() {
   try {
-    const { userId } = await auth();
+    // Retrieve auth and user information
+    const { userId } = auth();
     const user = await currentUser();
 
+    // Ensure user is authenticated
     if (!userId) {
-      return new NextResponse("unauthorized", { status: 401 });
+      return new NextResponse("Unauthorized", { status: 401 });
     }
 
+    // Query the user subscriptions
     const _userSubscriptions = await db
       .select()
       .from(userSubscriptions)
       .where(eq(userSubscriptions.userId, userId));
-    if (_userSubscriptions[0] && _userSubscriptions[0].stripeCustomerId) {
-      // trying to cancel at the billing portal
+
+    // If user has a subscription, create a billing portal session
+    if (_userSubscriptions[0]?.stripeCustomerId) {
       const stripeSession = await stripe.billingPortal.sessions.create({
         customer: _userSubscriptions[0].stripeCustomerId,
         return_url,
@@ -31,14 +33,14 @@ export async function GET() {
       return NextResponse.json({ url: stripeSession.url });
     }
 
-    // user's first time trying to subscribe
+    // If no subscription, create a new checkout session for the first subscription
     const stripeSession = await stripe.checkout.sessions.create({
       success_url: return_url,
       cancel_url: return_url,
       payment_method_types: ["card"],
       mode: "subscription",
       billing_address_collection: "auto",
-      customer_email: user?.emailAddresses[0].emailAddress,
+      customer_email: user?.emailAddresses[0]?.emailAddress ?? "",
       line_items: [
         {
           price_data: {
@@ -59,9 +61,10 @@ export async function GET() {
         userId,
       },
     });
+
     return NextResponse.json({ url: stripeSession.url });
   } catch (error) {
-    console.log("stripe error", error);
-    return new NextResponse("internal server error", { status: 500 });
+    console.error("Stripe error:", error);
+    return new NextResponse("Internal Server Error", { status: 500 });
   }
 }
