@@ -3,7 +3,7 @@ import { messages } from "@/lib/db/schema";
 import { eq } from "drizzle-orm";
 import { NextResponse } from "next/server";
 
-export const runtime = "nodejs";
+export const runtime = "edge";
 
 export const POST = async (req: Request) => {
   const { chatId } = await req.json();
