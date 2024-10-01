@@ -6,19 +6,42 @@ import { useChat } from "ai/react";
 import { Button } from "./ui/button";
 import { Send } from "lucide-react";
 import MessageList from "./MessageList";
+import { useQuery } from "@tanstack/react-query";
+import axios from "axios";
+import { Message } from "ai";
 
 type Props = { chatId: number };
 
 const ChatComponent = ({ chatId }: Props) => {
+  const { data } = useQuery({
+    queryKey: ["chat", chatId],
+    queryFn: async () => {
+      const response = await axios.post<Message[]>("/api/get-messages", {
+        chatId,
+      });
+      return response.data;
+    },
+  });
   const { input, handleInputChange, handleSubmit, messages } = useChat({
     api: "/api/chat",
     body: {
       chatId,
     },
+    initialMessages: data || [],
   });
 
+  React.useEffect(() => {
+    const messageContainer = document.getElementById("message-container");
+    if (messageContainer) {
+      messageContainer.scrollTo({
+        top: messageContainer.scrollHeight,
+        behavior: "smooth",
+      });
+    }
+  }, []);
+
   return (
-    <div className="relative h-screen overflow-scroll ">
+    <div className="relative h-screen overflow-scroll " id="message-container">
       <div className="sticky top-0 inset-x-0 p-2 b-white h-fit">
         <h3 className="text-xl font-bold">Chat</h3>
       </div>

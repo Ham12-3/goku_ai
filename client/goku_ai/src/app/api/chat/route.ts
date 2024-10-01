@@ -3,7 +3,7 @@ import { OpenAIStream, StreamingTextResponse } from "ai";
 import { getContext } from "@/lib/context";
 import { Message } from "ai/react";
 import { db } from "@/lib/db";
-import { chats } from "@/lib/db/schema";
+import { chats, messages as _messages } from "@/lib/db/schema";
 
 import { eq } from "drizzle-orm";
 import { FileKey } from "lucide-react";
@@ -34,7 +34,7 @@ export async function POST(req: Request) {
     const fileKey = _chats[0].fileKey;
 
     const lastMessage = messages[messages.length - 1];
-    const context = await getContext(lastMessage, fileKey);
+    const context = await getContext(lastMessage.content, fileKey);
 
     const prompt = {
       role: "system",
@@ -61,7 +61,24 @@ export async function POST(req: Request) {
       ],
       stream: true,
     });
-    const stream = OpenAIStream(response);
+    const stream = OpenAIStream(response, {
+      onStart: async () => {
+        // save user message into db
+        await db.insert(_messages).values({
+          chatId,
+          content: lastMessage.content,
+          role: "user",
+        });
+      },
+      onCompletion: async (completion) => {
+        // save ai message into db
+        await db.insert(_messages).values({
+          chatId,
+          content: completion,
+          role: "user",
+        });
+      },
+    });
     return new StreamingTextResponse(stream);
   } catch (error) {}
 }
