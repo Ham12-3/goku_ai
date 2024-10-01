@@ -49,9 +49,21 @@ export async function GET() {
               description: "Unlimited PDF sessions!",
             },
             unit_amount: 1,
+            recurring: {
+              interval: "month",
+            },
           },
+          quantity: 1,
         },
       ],
+      metadata: {
+        userId,
+      },
     });
-  } catch (error) {}
+
+    return NextResponse.json({ url: strippeSession.url });
+  } catch (error) {
+    console.log("stripe error", error);
+    return new NextResponse("internal server error", { status: 500 });
+  }
 }
