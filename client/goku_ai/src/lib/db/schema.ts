@@ -34,7 +34,7 @@ export const userSubscriptions = pgTable("user_sbscriptions", {
   id: serial("id").primaryKey(),
   userId: varchar("user_id", { length: 256 }).notNull().unique(),
 
-  stripCustomerId: varchar("stripe_customer_id", { length: 256 })
+  stripeCustomerId: varchar("stripe_customer_id", { length: 256 })
     .notNull()
     .unique(),
 
