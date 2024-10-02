@@ -6,12 +6,12 @@ import {
   Document,
   RecursiveCharacterTextSplitter,
 } from "@pinecone-database/doc-splitter";
+import { v4 as uuidv4 } from "uuid";
 import { getEmbeddings } from "./embeddings";
 import { convertToAscii } from "./utils";
 
 export const getPineconeClient = () => {
   return new Pinecone({
-    environment: process.env.PINECONE_ENVIRONMENT!,
     apiKey: process.env.PINECONE_API_KEY!,
   });
 };
@@ -37,15 +37,18 @@ export async function loadS3IntoPinecone(fileKey: string) {
   // 2. split and segment the pdf
   const documents = await Promise.all(pages.map(prepareDocument));
 
+  console.log("SPlitted documents", documents);
+
   // 3. vectorise and embed individual documents
   const vectors = await Promise.all(documents.flat().map(embedDocument));
+
+  console.log("Embedded documents", vectors);
 
   // 4. upload to pinecone
   const client = await getPineconeClient();
   const pineconeIndex = await client.index("gokuai");
   const namespace = pineconeIndex.namespace(convertToAscii(fileKey));
 
-  console.log("inserting vectors into pinecone");
   await namespace.upsert(vectors);
 
   return documents[0];
@@ -77,17 +80,38 @@ export const truncateStringByBytes = (str: string, bytes: number) => {
 
 async function prepareDocument(page: PDFPage) {
   let { pageContent, metadata } = page;
+
+  // Remove any newline characters from the page content
   pageContent = pageContent.replace(/\n/g, "");
-  // split the docs
-  const splitter = new RecursiveCharacterTextSplitter();
-  const docs = await splitter.splitDocuments([
-    new Document({
-      pageContent,
-      metadata: {
-        pageNumber: metadata.loc.pageNumber,
-        text: truncateStringByBytes(pageContent, 36000),
-      },
-    }),
-  ]);
-  return docs;
+
+  // Initialize the splitter with a defined chunk size and overlap
+  const splitter = new RecursiveCharacterTextSplitter({
+    chunkSize: 1000, // Customize chunk size
+    chunkOverlap: 200, // Overlap for better context preservation
+  });
+
+  // Prepare the document before splitting
+  const document = new Document({
+    pageContent,
+    metadata: {
+      pageNumber: metadata.loc.pageNumber,
+      text: truncateStringByBytes(pageContent, 36000),
+    },
+  });
+
+  // Split the document into smaller chunks
+  const docs = await splitter.splitDocuments([document]);
+
+  // Map over the split documents and assign unique IDs
+  const castedSplits = docs.map((split) => ({
+    pageContent: split.pageContent,
+    metadata: {
+      ...split.metadata,
+      id: uuidv4(), // Assign a unique ID to each split
+      pageContent: split.pageContent, // Include page content in metadata
+    },
+  }));
+
+  // Return the processed and split documents
+  return castedSplits;
 }

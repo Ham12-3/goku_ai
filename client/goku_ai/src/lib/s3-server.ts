@@ -1,7 +1,16 @@
 import { S3 } from "@aws-sdk/client-s3";
 import fs from "fs";
+import os from "os";
+import path from "path";
 import * as dotenv from "dotenv";
+import { pipeline } from "stream";
+import { promisify } from "util"; // To use promise-based pipeline
+import { Readable } from "stream"; // Import the Readable stream from Node.js
+
 dotenv.config({ path: "../../.env.local" });
+
+const streamPipeline = promisify(pipeline);
+
 export async function downloadFromS3(file_key: string): Promise<string> {
   return new Promise(async (resolve, reject) => {
     try {
@@ -12,33 +21,34 @@ export async function downloadFromS3(file_key: string): Promise<string> {
           secretAccessKey: process.env.NEXT_PUBLIC_AWS_SECRET_ACCESS_KEY!,
         },
       });
+
       const params = {
         Bucket: process.env.NEXT_PUBLIC_AWS_BUCKET_NAME!,
         Key: file_key,
       };
 
       const obj = await s3.getObject(params);
-      const file_name = `/tmp/${Date.now().toString()}.pdf`;
 
-      if (obj.Body instanceof require("stream").Readable) {
-        // AWS-SDK v3 has some issues with their typescript definitions, but this works
-        // https://github.com/aws/aws-sdk-js-v3/issues/843
-        //open the writable stream and write the file
-        const file = fs.createWriteStream(file_name);
-        file.on("open", function (fd) {
-          // @ts-ignore
-          obj.Body?.pipe(file).on("finish", () => {
-            return resolve(file_name);
-          });
-        });
-        // obj.Body?.pipe(fs.createWriteStream(file_name));
+      // Check if Body is defined and is a readable stream
+      if (!obj.Body || !(obj.Body instanceof Readable)) {
+        return reject(new Error("S3 object body is not a readable stream"));
       }
+
+      // Get temp directory and define the file path
+      const tempDir = os.tmpdir(); // Cross-platform temp directory
+      const file_name = path.join(tempDir, `${Date.now().toString()}.pdf`);
+
+      // Create write stream for the file
+      const fileStream = fs.createWriteStream(file_name);
+
+      // Use stream pipeline to pipe S3 response to the file
+      await streamPipeline(obj.Body, fileStream);
+
+      // Resolve with the file path
+      resolve(file_name);
     } catch (error) {
       console.error(error);
       reject(error);
-      return null;
     }
   });
 }
-
-// downloadFromS3("uploads/1693568801787chongzhisheng_resume.pdf");

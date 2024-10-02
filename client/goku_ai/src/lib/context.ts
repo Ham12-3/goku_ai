@@ -1,4 +1,4 @@
-import { PineconeClient } from "@pinecone-database/pinecone";
+import { Pinecone } from "@pinecone-database/pinecone";
 import { convertToAscii } from "./utils";
 import { getEmbeddings } from "./embeddings";
 
@@ -6,28 +6,26 @@ export async function getMatchesFromEmbeddings(
   embeddings: number[],
   fileKey: string
 ) {
-  const pinecone = new PineconeClient();
-
-  await pinecone.init({
+  const pinecone = new Pinecone({
     apiKey: process.env.PINECONE_API_KEY!,
-    environment: process.env.PINECONE_ENVIRONMENT!,
   });
 
   const index = await pinecone.Index("gokuai");
+
   try {
     const namespace = convertToAscii(fileKey);
 
+    // Correct query request without wrapping in queryRequest
     const queryResult = await index.query({
-      queryRequest: {
-        topK: 5,
-        vector: embeddings,
-        includeMetadata: true,
-        namespace,
-      },
+      topK: 5, // Set the top K most relevant matches
+      vector: embeddings, // The embedding vector you want to search for
+      includeMetadata: true, // Include the metadata (e.g., text, pageNumber)
+      filter: { namespace: namespace }, // Use filter to isolate vectors by namespace
     });
+
     return queryResult.matches || [];
   } catch (error) {
-    console.log("error querying embedding", error);
+    console.log("Error querying embeddings", error);
     throw error;
   }
 }
