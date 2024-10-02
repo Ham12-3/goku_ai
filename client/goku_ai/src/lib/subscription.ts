@@ -1,4 +1,4 @@
-import { auth } from "@clerk/nextjs";
+import { auth } from "@clerk/nextjs/server";
 import { db } from "./db";
 import { userSubscriptions } from "./db/schema";
 import { eq } from "drizzle-orm";
@@ -24,8 +24,8 @@ export const checkSubscription = async () => {
   const userSubscription = _userSubscriptions[0];
 
   const isValid =
-    userSubscription.stripPriceId &&
-    userSubscription.stripeCurrentPeriodEnd?.getTime()! + DAY_IN_MS >
+    userSubscription?.stripPriceId &&
+    userSubscription?.stripeCurrentPeriodEnd?.getTime()! + DAY_IN_MS >
       Date.now();
 
   return !!isValid;
