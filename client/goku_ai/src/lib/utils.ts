@@ -1,5 +1,4 @@
-import { clsx, type ClassValue } from "clsx";
-
+import { type ClassValue, clsx } from "clsx";
 import { twMerge } from "tailwind-merge";
 
 export function cn(...inputs: ClassValue[]) {
@@ -7,8 +6,7 @@ export function cn(...inputs: ClassValue[]) {
 }
 
 export function convertToAscii(inputString: string) {
-  // reomving any non ascii charachters
-
+  // remove non ascii characters
   const asciiString = inputString.replace(/[^\x00-\x7F]+/g, "");
   return asciiString;
 }
