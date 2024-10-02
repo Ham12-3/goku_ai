@@ -1,22 +1,24 @@
 import { S3 } from "@aws-sdk/client-s3";
 import fs from "fs";
+import * as dotenv from "dotenv";
+dotenv.config({ path: "../../.env.local" });
 export async function downloadFromS3(file_key: string): Promise<string> {
   return new Promise(async (resolve, reject) => {
     try {
       const s3 = new S3({
         region: "us-east-1",
         credentials: {
-          accessKeyId: process.env.AWS_ACCESS_KEY_ID!,
-          secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY!,
+          accessKeyId: process.env.NEXT_PUBLIC_AWS_ACCESS_KEY_ID!,
+          secretAccessKey: process.env.NEXT_PUBLIC_AWS_SECRET_ACCESS_KEY!,
         },
       });
       const params = {
-        Bucket: process.env.AWS_BUCKET_NAME!,
+        Bucket: process.env.NEXT_PUBLIC_AWS_BUCKET_NAME!,
         Key: file_key,
       };
 
       const obj = await s3.getObject(params);
-      const file_name = `/tmp/pdf - ${Date.now()}.pdf`;
+      const file_name = `/tmp/${Date.now().toString()}.pdf`;
 
       if (obj.Body instanceof require("stream").Readable) {
         // AWS-SDK v3 has some issues with their typescript definitions, but this works
