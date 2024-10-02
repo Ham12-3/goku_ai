@@ -1,16 +1,16 @@
 {
-  "name": "chatpdf-yt",
+  "name": "Goku-AI",
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev",
+    "dev": "export NODE_OPTIONS='--max-old-space-size=8192' && next dev",
     "build": "next build",
     "start": "next start",
     "lint": "next lint"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.414.0",
-    "@clerk/nextjs": "^4.31.5",
+    "@clerk/nextjs": "^4.23.3",
     "@neondatabase/serverless": "^0.6.0",
     "@pinecone-database/doc-splitter": "^0.0.1",
     "@pinecone-database/pinecone": "^1.0.1",
