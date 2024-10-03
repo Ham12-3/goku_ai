@@ -1,6 +1,9 @@
 ## goku_ai
 
-Goku AI is an AI pdf reader where you upload in the pdf and then you can ask the AI questions from the PDF and can also request help from the AI on anything from the PDF
+Goku AI is an AI pdf reader where you upload in the pdf and then you can ask the AI questions from the PDF and can also request help from the AI on anything from the PDF.
+Goku AI is built with technologies such as Next.js, OpenAI api, NeonDB, PineconeDB, DRizzleORM and then verel ai sdk.
+
+In this  project I learnt the use of the openAI api as well as PineconeDB which is suitable for embeddings and creating vectors, I also use the langchain as well
 
 ![image](https://github.com/user-attachments/assets/e82debf7-8b04-4e8b-b791-ea7627f9a162)
 
